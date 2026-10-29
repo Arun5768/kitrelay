@@ -192,6 +192,7 @@ export function useWorkspace() {
         body: { name },
       });
       adopt(d);
+      sessionStorage.setItem("kitrelay-workspace", d.id);
       await refreshAccount();
       return true;
     } catch (e) {
@@ -210,7 +211,7 @@ export function useWorkspace() {
     }
     save(next);
   };
-  const logout = async () => {
+  const logout = async (returnPath = "/login") => {
     if (saving.current || failed.current) {
       setError("Resolve unsaved changes before signing out.");
       return;
@@ -221,7 +222,7 @@ export function useWorkspace() {
     rawSet(null);
     setActive(null);
     setAccount(null);
-    location.hash = "/login";
+    location.hash = returnPath;
   };
   return {
     state,
@@ -278,9 +279,10 @@ export function Login({ store, returnPath = "/#/desk" }) {
         <small>
           Google Calendar access is optional and requested separately.
         </small>
-        <a className="text-button" href="#/privacy">
+        <a className="text-button" href="/privacy.html">
           How we handle your data
         </a>
+        <a className="text-button" href="/terms.html">Terms of service</a>
       </div>
     </main>
   );
@@ -338,7 +340,15 @@ export function Team({ store }) {
   const refresh = () =>
     request("/workspaces/" + store.active.id + "/team").then(setData);
   useEffect(() => {
-    if (store.cloud) refresh().catch((e) => setError(e.message));
+    let cancelled = false;
+    setData(null);
+    setLink("");
+    setError("");
+    if (store.cloud)
+      request("/workspaces/" + store.active.id + "/team")
+        .then((result) => { if (!cancelled) setData(result); })
+        .catch((e) => { if (!cancelled) setError(e.message); });
+    return () => { cancelled = true; };
   }, [store.active?.id]);
   async function action(path, method, body) {
     setBusy(true);
@@ -525,7 +535,7 @@ export function Invite({ store, token }) {
         >
           Accept invitation <ArrowUpRight size={16} />
         </button>
-        <button className="text-button" onClick={store.logout}>
+        <button className="text-button" onClick={() => store.logout("/invite/" + token).catch((e) => setError(e.message))}>
           Use a different account
         </button>
       </div>

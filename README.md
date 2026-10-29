@@ -10,6 +10,8 @@ The Cloudflare Worker and D1 database are deployed, and Google OAuth credentials
 
 ## Features
 
+Final workflow and mobile checks, fixes, and remaining verification limits are recorded in [VALIDATION.md](VALIDATION.md). Public [privacy](https://kitrelay.arunchandel1780.workers.dev/privacy.html) and [terms](https://kitrelay.arunchandel1780.workers.dev/terms.html) pages are deployed and configured in Google OAuth branding.
+
 - Google OAuth with verified OpenID tokens, PKCE, nonce, browser-bound single-use state, and HTTP-only sessions.
 - Cloud workspaces with server-enforced owner/editor/viewer membership, email-bound invitation links, revocation, and workspace switching.
 - D1 persistence with optimistic concurrency. Stale writes are rejected; failed saves remain visible for export. Team changes refresh every 15 seconds when there are no unsaved edits.

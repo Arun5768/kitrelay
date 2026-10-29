@@ -632,7 +632,8 @@ function App() {
           <footer>
             {logo}
             <span>Made for the people behind the frame.</span>
-            <a href="#/privacy">Privacy & data</a>
+            <a href="/privacy.html">Privacy & data</a>
+            <a href="/terms.html">Terms</a>
           </footer>
         </div>
       ) : page === "privacy" ? (
@@ -710,7 +711,7 @@ function App() {
                   <Icon size={18} />
                   {label}
                   {p === "shoots" && (
-                    <span className="nav-count">{upcoming.length}</span>
+                    <span className="nav-count">{s.jobs.length}</span>
                   )}
                 </a>
               ))}
@@ -745,6 +746,7 @@ function App() {
               <button
                 className="mobile-menu"
                 aria-label="Toggle navigation"
+                aria-expanded={menu}
                 onClick={() => setMenu(!menu)}
               >
                 <Menu />
@@ -1212,7 +1214,8 @@ function App() {
               )}
               <footer className="app-footer">
                 <span>KitRelay / Made for the work before the work.</span>
-                <a href="#/privacy">Privacy & data</a>
+                <a href="/privacy.html">Privacy & data</a>
+                <a href="/terms.html">Terms</a>
               </footer>
             </main>
           </div>
