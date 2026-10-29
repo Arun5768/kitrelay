@@ -6,7 +6,7 @@ Equipment planning, packing, checkout, and returns for small production crews. R
 
 ## Deployment status
 
-The Cloudflare Worker and D1 database are deployed, and Google OAuth credentials are installed in Cloudflare's secret store. Live Google sign-in, cloud workspace persistence after reload, and Google Calendar event creation were verified on 29 October 2026. A demo shoot appeared in the owner's dedicated "KitRelay productions" calendar; repeating sync reported zero updates and retained one event. The Google app remains in Testing with the owner's account allowed. Two-account invitation acceptance has not yet been verified live; automated tests cover membership and invitation access rules. Calendar automated tests use mocked Google responses in addition to the live smoke test.
+The Cloudflare Worker and D1 database are deployed, and Google OAuth credentials are installed in Cloudflare's secret store. Live Google sign-in, cloud workspace persistence after reload, and Google Calendar event creation were verified on 29 October 2026. A demo shoot appeared in the owner's dedicated "KitRelay productions" calendar; repeating sync reported zero updates and retained one event. Google OAuth is **In production**. Google's Verification centre confirms data-access verification is not required because no sensitive or restricted scopes are requested. Custom branding is not verified, so Google can display the site's domain instead of the app name. Two-account invitation acceptance has not been verified live; automated tests cover membership and invitation access rules. Calendar automated tests use mocked Google responses in addition to the live smoke test.
 
 ## Features
 

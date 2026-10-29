@@ -601,6 +601,9 @@ export function CalendarConnection({ store }) {
                 <RefreshCw size={16} />
                 {busy ? "Working…" : "Sync workspace now"}
               </button>
+              <a className="text-button" href="/api/auth/google?purpose=calendar">
+                Renew Google connection
+              </a>
               <button
                 className="text-button danger"
                 disabled={busy}

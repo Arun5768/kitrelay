@@ -25,6 +25,7 @@ Coverage includes incomplete kits, dependencies and double booking, checkout and
 - Clear team and invitation display state when changing workspaces; ignore stale team reads.
 - Publish static privacy and terms pages and link them from the home, sign-in, and workspace screens.
 - Count all shoots in the All shoots navigation badge, including returned shoots, and expose mobile navigation expansion state to assistive technology.
+- Add a Calendar renewal link that refreshes consent while preserving the existing calendar and event mappings.
 
 ## Deliberate limits and remaining checks
 
@@ -32,4 +33,4 @@ Two-account browser acceptance and editing have **not** been verified live; thei
 
 The demo workspace and the clearly labelled Calendar test event remain for inspection. Account/workspace deletion is handled through the published support contact. This release is early access and has no uptime SLA.
 
-Google's publishing/verification status is separate from the Cloudflare deployment. Check Google Auth Platform before inviting external Calendar users; Testing grants including Calendar expire after seven days. The app uses the limited `calendar.app.created` scope. See [Google's audience documentation](https://support.google.com/cloud/answer/15549945?hl=en).
+Google OAuth was published with the owner's approval and visibly reports **In production**. The Verification centre reports **data-access verification is not required**, because the declared scopes are not sensitive or restricted. Custom branding remains unverified; Google currently displays the site's domain. The app uses the limited `calendar.app.created` scope. A repeat live sync after publishing returned zero updates and one accounted-for shoot. Previously issued Testing grants may need renewal; use **Renew Google connection**, which retains the calendar mapping. See [Google's audience documentation](https://support.google.com/cloud/answer/15549945?hl=en).
