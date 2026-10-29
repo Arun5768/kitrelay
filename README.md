@@ -6,7 +6,7 @@ Equipment planning, packing, checkout, and returns for small production crews. R
 
 ## Deployment status
 
-The Cloudflare Worker and D1 database are deployed. **Google OAuth client credentials still need to be installed by the owner.** Until then, login is visibly disabled and live Google authentication/calendar consent cannot be tested. Calendar tests use mocked Google responses; they do not establish live provider authorization.
+The Cloudflare Worker and D1 database are deployed, and Google OAuth credentials are installed in Cloudflare's secret store. Live Google sign-in has been verified. The Google app remains in Testing with the owner's account allowed; Calendar consent and a live event sync still need to be verified. Calendar automated tests use mocked Google responses.
 
 ## Features
 

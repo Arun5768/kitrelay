@@ -7,23 +7,27 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "kitrelay",
       "database_id": "1bbc5db1-28bc-4964-bd14-9e4f4f93b7af",
-      "migrations_dir": "migrations",
-    },
+      "migrations_dir": "migrations"
+    }
   ],
   "triggers": {
-    "crons": ["17 3 * * *"],
+    "crons": [
+      "17 3 * * *"
+    ]
   },
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   "vars": {
-    "APP_ORIGIN": "https://kitrelay.arunchandel1780.workers.dev",
-  },
+    "APP_ORIGIN": "https://kitrelay.arunchandel1780.workers.dev"
+  }
 }
