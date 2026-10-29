@@ -27,6 +27,8 @@ Coverage includes incomplete kits, dependencies and double booking, checkout and
 - Count all shoots in the All shoots navigation badge, including returned shoots, and expose mobile navigation expansion state to assistive technology.
 - Add a Calendar renewal link that refreshes consent while preserving the existing calendar and event mappings.
 
+The owner completed the renewal flow after production publishing using the same limited permissions; it returned to the connected workspace successfully.
+
 ## Deliberate limits and remaining checks
 
 Two-account browser acceptance and editing have **not** been verified live; their authorization rules pass automated tests. Camera scanning was not tested with physical equipment. Billing, media uploads, automatic invitation emails, background Calendar sync, and two-way Calendar sync are outside this release.
