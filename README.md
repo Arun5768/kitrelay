@@ -1,5 +1,7 @@
 # KitRelay
 
+[Live application](https://kitrelay.vercel.app) · [Public source](https://github.com/Arun5768/kitrelay)
+
 A visual equipment workspace for small production crews. Prepare a kit, catch conflicting reservations and missing accessories, check equipment out, and record its return.
 
 ## Run
@@ -14,6 +16,8 @@ npm run build
 ```
 
 Deploy the Vite output directory `dist` to Vercel. No environment variables are needed for the current release.
+
+The initial production deployment was published with the Vercel CLI. Automatic GitHub deployments are not connected: Vercel requires the owner to add a GitHub login connection. Until then, deploy updates with `npx vercel --prod` from this directory.
 
 ## Working features
 

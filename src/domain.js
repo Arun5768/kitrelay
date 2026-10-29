@@ -1,27 +1,243 @@
-export const categories = ['Camera','Lens','Audio','Light','Support','Power','Media'];
+export const categories = [
+  "Camera",
+  "Lens",
+  "Audio",
+  "Light",
+  "Support",
+  "Power",
+  "Media",
+];
 export const uid = () => globalThis.crypto.randomUUID();
-export const localDate = (offset=0) => { const d=new Date();d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+export const localDate = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 export function sampleState() {
- const gear=[['g1','Sony FX3','Camera','KR-001',['g6','g7']],['g2','Sony FE 24–70mm','Lens','KR-002',[]],['g3','RØDE Wireless PRO','Audio','KR-003',[]],['g4','Aputure Amaran 200x','Light','KR-004',[]],['g5','Manfrotto tripod','Support','KR-005',[]],['g6','NP-FZ100 battery kit','Power','KR-006',[]],['g7','CFexpress 160GB','Media','KR-007',[]],['g8','Sony A7 IV','Camera','KR-008',['g6','g7']],['g9','Sony FE 85mm','Lens','KR-009',[]]].map(([id,name,category,code,requires])=>({id,name,category,code,requires,condition:'ready',notes:''}));
- return {version:1,workspace:'Frame & Field',demo:true,onboarded:true,gear,jobs:[{id:'j1',name:'The lakeside wedding',client:'Sample · Mehra family',location:'Bhopal · Upper Lake',start:localDate(1),end:localDate(2),crew:'Aarav + 2 crew',status:'planning',items:['g1','g2','g3','g5','g6','g7'],packed:['g1','g2','g3'],returns:{},activity:[{text:'Sample production created',at:new Date().toISOString()}]},{id:'j2',name:'A slower kind of Sunday',client:'Sample · Studio campaign',location:'Bhopal · Studio 02',start:localDate(5),end:localDate(5),crew:'Mira',status:'planning',items:['g8','g9','g4','g5','g6','g7'],packed:[],returns:{},activity:[]} ]};
+  const gear = [
+    ["g1", "Sony FX3", "Camera", "KR-001", ["g6", "g7"]],
+    ["g2", "Sony FE 24–70mm", "Lens", "KR-002", []],
+    ["g3", "RØDE Wireless PRO", "Audio", "KR-003", []],
+    ["g4", "Aputure Amaran 200x", "Light", "KR-004", []],
+    ["g5", "Manfrotto tripod", "Support", "KR-005", []],
+    ["g6", "NP-FZ100 battery kit", "Power", "KR-006", []],
+    ["g7", "CFexpress 160GB", "Media", "KR-007", []],
+    ["g8", "Sony A7 IV", "Camera", "KR-008", ["g6", "g7"]],
+    ["g9", "Sony FE 85mm", "Lens", "KR-009", []],
+  ].map(([id, name, category, code, requires]) => ({
+    id,
+    name,
+    category,
+    code,
+    requires,
+    condition: "ready",
+    notes: "",
+  }));
+  return {
+    version: 1,
+    workspace: "Frame & Field",
+    demo: true,
+    onboarded: true,
+    gear,
+    jobs: [
+      {
+        id: "j1",
+        name: "The lakeside wedding",
+        client: "Sample · Mehra family",
+        location: "Bhopal · Upper Lake",
+        start: localDate(1),
+        end: localDate(2),
+        crew: "Aarav + 2 crew",
+        status: "planning",
+        items: ["g1", "g2", "g3", "g5", "g6", "g7"],
+        packed: ["g1", "g2", "g3"],
+        returns: {},
+        activity: [
+          { text: "Sample production created", at: new Date().toISOString() },
+        ],
+      },
+      {
+        id: "j2",
+        name: "A slower kind of Sunday",
+        client: "Sample · Studio campaign",
+        location: "Bhopal · Studio 02",
+        start: localDate(5),
+        end: localDate(5),
+        crew: "Mira",
+        status: "planning",
+        items: ["g8", "g9", "g4", "g5", "g6", "g7"],
+        packed: [],
+        returns: {},
+        activity: [],
+      },
+    ],
+  };
 }
-export const emptyState = name => ({version:1,workspace:name,demo:false,onboarded:true,gear:[],jobs:[]});
-export const overlaps = (a,b) => a.start<=b.end && b.start<=a.end;
-export function conflicts(state,job,gearId) { return state.jobs.filter(j=>j.id!==job.id && j.status!=='returned' && j.items.includes(gearId) && (overlaps(j,job) || (j.status==='out' && !j.returns[gearId]))); }
-export function blockers(state,job) {
- const out=[];
- if(!job.items.length) out.push('Add at least one item to the kit.');
- for(const id of job.items) {
- const g=state.gear.find(g=>g.id===id);if(!g){out.push('An assigned item is missing from inventory.');continue;}
- if(g.condition!=='ready')out.push(`${g.name} is in maintenance.`);
- if(!job.packed.includes(id))out.push(`${g.name} is not packed.`);
- for(const dep of g.requires||[])if(!job.items.includes(dep))out.push(`${g.name} needs ${state.gear.find(x=>x.id===dep)?.name||'a missing accessory'}.`);
- for(const other of conflicts(state,job,id))out.push(`${g.name} is also assigned to ${other.name}.`);
- }
- return [...new Set(out)];
+export const emptyState = (name) => ({
+  version: 1,
+  workspace: name,
+  demo: false,
+  onboarded: true,
+  gear: [],
+  jobs: [],
+});
+export const overlaps = (a, b) => a.start <= b.end && b.start <= a.end;
+export function conflicts(state, job, gearId) {
+  return state.jobs.filter(
+    (j) =>
+      j.id !== job.id &&
+      j.status !== "returned" &&
+      j.items.includes(gearId) &&
+      (overlaps(j, job) || (j.status === "out" && !j.returns[gearId])),
+  );
 }
-export function checkout(state,id){ const job=state.jobs.find(j=>j.id===id);if(!job||job.status!=='planning')throw Error('Only a planned shoot can be checked out.');const issues=blockers(state,job);if(issues.length)throw Error(issues[0]);return {...state,jobs:state.jobs.map(j=>j.id===id?{...j,status:'out',activity:[...j.activity,{text:'Kit checked out',at:new Date().toISOString()}]}:j)};}
-export function returnItem(state,jobId,gearId,condition){const job=state.jobs.find(j=>j.id===jobId);if(!job||job.status!=='out'||!job.items.includes(gearId))throw Error('This item is not checked out on this shoot.');if(!['ready','maintenance'].includes(condition))throw Error('Invalid condition.');const returns={...job.returns,[gearId]:condition};return {...state,gear:state.gear.map(g=>g.id===gearId?{...g,condition}:g),jobs:state.jobs.map(j=>j.id===jobId?{...j,returns,status:j.items.every(id=>returns[id])?'returned':'out',activity:[...j.activity,{text:`${state.gear.find(g=>g.id===gearId).name} returned${condition==='maintenance'?' · needs repair':''}`,at:new Date().toISOString()}]}:j)};}
-const esc = s=>String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
-export function calendarFile(job){const end=new Date(job.end+'T12:00:00');end.setDate(end.getDate()+1);const next=`${end.getFullYear()}${String(end.getMonth()+1).padStart(2,'0')}${String(end.getDate()).padStart(2,'0')}`;return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//KitRelay//Production//EN','BEGIN:VEVENT',`UID:${job.id}@kitrelay`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}`,`DTSTART;VALUE=DATE:${job.start.replaceAll('-','')}`,`DTEND;VALUE=DATE:${next}`,`SUMMARY:${esc(job.name)}`,`LOCATION:${esc(job.location)}`,`DESCRIPTION:${esc('Crew: '+job.crew)}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');}
-export function validateBackup(s){if(s?.version!==1||typeof s.workspace!=='string'||!Array.isArray(s.gear)||!Array.isArray(s.jobs))throw Error('Choose a KitRelay backup file.');const ids=new Set();for(const g of s.gear){if(!g.id||ids.has(g.id)||typeof g.name!=='string'||typeof g.code!=='string'||!categories.includes(g.category)||!['ready','maintenance'].includes(g.condition)||!Array.isArray(g.requires))throw Error('Invalid equipment records.');ids.add(g.id);}for(const g of s.gear)if(g.requires.some(id=>!ids.has(id)))throw Error('An accessory reference is missing.');const jobs=new Set();for(const j of s.jobs){if(!j.id||jobs.has(j.id)||typeof j.name!=='string'||typeof j.crew!=='string'||typeof j.location!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(j.start)||!/^\d{4}-\d{2}-\d{2}$/.test(j.end)||j.end<j.start||!['planning','out','returned'].includes(j.status)||!Array.isArray(j.items)||!Array.isArray(j.packed)||!j.returns||typeof j.returns!=='object'||!Array.isArray(j.activity)||j.items.some(id=>!ids.has(id))||j.packed.some(id=>!j.items.includes(id)))throw Error('Invalid shoot records.');jobs.add(j.id);}return s;}
+export function blockers(state, job) {
+  const out = [];
+  if (!job.items.length) out.push("Add at least one item to the kit.");
+  for (const id of job.items) {
+    const g = state.gear.find((g) => g.id === id);
+    if (!g) {
+      out.push("An assigned item is missing from inventory.");
+      continue;
+    }
+    if (g.condition !== "ready") out.push(`${g.name} is in maintenance.`);
+    if (!job.packed.includes(id)) out.push(`${g.name} is not packed.`);
+    for (const dep of g.requires || [])
+      if (!job.items.includes(dep))
+        out.push(
+          `${g.name} needs ${state.gear.find((x) => x.id === dep)?.name || "a missing accessory"}.`,
+        );
+    for (const other of conflicts(state, job, id))
+      out.push(`${g.name} is also assigned to ${other.name}.`);
+  }
+  return [...new Set(out)];
+}
+export function checkout(state, id) {
+  const job = state.jobs.find((j) => j.id === id);
+  if (!job || job.status !== "planning")
+    throw Error("Only a planned shoot can be checked out.");
+  const issues = blockers(state, job);
+  if (issues.length) throw Error(issues[0]);
+  return {
+    ...state,
+    jobs: state.jobs.map((j) =>
+      j.id === id
+        ? {
+            ...j,
+            status: "out",
+            activity: [
+              ...j.activity,
+              { text: "Kit checked out", at: new Date().toISOString() },
+            ],
+          }
+        : j,
+    ),
+  };
+}
+export function returnItem(state, jobId, gearId, condition) {
+  const job = state.jobs.find((j) => j.id === jobId);
+  if (!job || job.status !== "out" || !job.items.includes(gearId))
+    throw Error("This item is not checked out on this shoot.");
+  if (!["ready", "maintenance"].includes(condition))
+    throw Error("Invalid condition.");
+  const returns = { ...job.returns, [gearId]: condition };
+  return {
+    ...state,
+    gear: state.gear.map((g) => (g.id === gearId ? { ...g, condition } : g)),
+    jobs: state.jobs.map((j) =>
+      j.id === jobId
+        ? {
+            ...j,
+            returns,
+            status: j.items.every((id) => returns[id]) ? "returned" : "out",
+            activity: [
+              ...j.activity,
+              {
+                text: `${state.gear.find((g) => g.id === gearId).name} returned${condition === "maintenance" ? " · needs repair" : ""}`,
+                at: new Date().toISOString(),
+              },
+            ],
+          }
+        : j,
+    ),
+  };
+}
+const esc = (s) =>
+  String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+export function calendarFile(job) {
+  const end = new Date(job.end + "T12:00:00");
+  end.setDate(end.getDate() + 1);
+  const next = `${end.getFullYear()}${String(end.getMonth() + 1).padStart(2, "0")}${String(end.getDate()).padStart(2, "0")}`;
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//KitRelay//Production//EN",
+    "BEGIN:VEVENT",
+    `UID:${job.id}@kitrelay`,
+    `DTSTAMP:${new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "")}`,
+    `DTSTART;VALUE=DATE:${job.start.replaceAll("-", "")}`,
+    `DTEND;VALUE=DATE:${next}`,
+    `SUMMARY:${esc(job.name)}`,
+    `LOCATION:${esc(job.location)}`,
+    `DESCRIPTION:${esc("Crew: " + job.crew)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+export function validateBackup(s) {
+  if (
+    s?.version !== 1 ||
+    typeof s.workspace !== "string" ||
+    !Array.isArray(s.gear) ||
+    !Array.isArray(s.jobs)
+  )
+    throw Error("Choose a KitRelay backup file.");
+  const ids = new Set();
+  for (const g of s.gear) {
+    if (
+      !g.id ||
+      ids.has(g.id) ||
+      typeof g.name !== "string" ||
+      typeof g.code !== "string" ||
+      !categories.includes(g.category) ||
+      !["ready", "maintenance"].includes(g.condition) ||
+      !Array.isArray(g.requires)
+    )
+      throw Error("Invalid equipment records.");
+    ids.add(g.id);
+  }
+  for (const g of s.gear)
+    if (g.requires.some((id) => !ids.has(id)))
+      throw Error("An accessory reference is missing.");
+  const jobs = new Set();
+  for (const j of s.jobs) {
+    if (
+      !j.id ||
+      jobs.has(j.id) ||
+      typeof j.name !== "string" ||
+      typeof j.crew !== "string" ||
+      typeof j.location !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(j.start) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(j.end) ||
+      j.end < j.start ||
+      !["planning", "out", "returned"].includes(j.status) ||
+      !Array.isArray(j.items) ||
+      !Array.isArray(j.packed) ||
+      !j.returns ||
+      typeof j.returns !== "object" ||
+      !Array.isArray(j.activity) ||
+      j.items.some((id) => !ids.has(id)) ||
+      j.packed.some((id) => !j.items.includes(id))
+    )
+      throw Error("Invalid shoot records.");
+    jobs.add(j.id);
+  }
+  return s;
+}
