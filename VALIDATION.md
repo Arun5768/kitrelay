@@ -16,6 +16,7 @@ Coverage includes incomplete kits, dependencies and double booking, checkout and
 - Created an email-bound viewer invitation and verified that switching accounts preserved the invitation route. The second-account login required a password; the owner requested using only the owner account, so live acceptance/editor/viewer testing was stopped. Revoked the unused invitation and verified there were no pending invitations or additional members. No invitation email was sent.
 - In **KitRelay Studio**, a demo shoot created one real all-day event on 30 October in the owner's **KitRelay productions** Google calendar. Repeating sync returned zero updates and one accounted-for shoot. The event was inspected in Google Calendar. This is a manual one-way sync.
 - Public home, privacy, terms, and configuration routes returned HTTP 200. Google sign-in displayed the published privacy and terms links.
+- Downloaded the live owner's workspace backup and validated it using `validateBackup`: valid JSON, one shoot, zero equipment items, workspace KitRelay Studio. The backup stays local and is not committed.
 - At a 390px viewport, the workspace fit without horizontal overflow and the mobile navigation opened and navigated successfully. Restored the normal viewport afterward.
 
 ## Fixes from verification
@@ -36,3 +37,9 @@ Two-account browser acceptance and editing have **not** been verified live; thei
 The demo workspace and the clearly labelled Calendar test event remain for inspection. Account/workspace deletion is handled through the published support contact. This release is early access and has no uptime SLA.
 
 Google OAuth was published with the owner's approval and visibly reports **In production**. The Verification centre reports **data-access verification is not required**, because the declared scopes are not sensitive or restricted. Custom branding remains unverified; Google currently displays the site's domain. The app uses the limited `calendar.app.created` scope. A repeat live sync after publishing returned zero updates and one accounted-for shoot. Previously issued Testing grants may need renewal; use **Renew Google connection**, which retains the calendar mapping. See [Google's audience documentation](https://support.google.com/cloud/answer/15549945?hl=en).
+
+## Branding ownership follow-up
+
+Google's branding evaluation found one issue: the homepage was not registered to the owner. On 29 October 2026 at approximately 15:37 IST, Google Search Console confirmed **Ownership verified** for `https://kitrelay.arunchandel1780.workers.dev/` under the same owner account, using the HTML verification file now deployed in `public/`. Keep that file deployed to retain verification.
+
+Google's issue panel explicitly says to wait 24 hours after ownership verification before retrying, so branding re-verification should be attempted after **30 October 2026, 15:40 IST**. The app remains in production during this wait. In Google Auth Platform → Branding → Information and summary → View issues, select **I have fixed the issues** and request re-verification. Publish branding only after Google reports it is ready; ownership verification alone is not branding approval.
