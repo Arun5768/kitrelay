@@ -6,3 +6,6 @@ dist/
 *.log
 
 .vercel
+.dev.vars*
+!.dev.vars.example
+.wrangler/

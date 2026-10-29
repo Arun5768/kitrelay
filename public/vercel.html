@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KitRelay — Your cloud workspace</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f8f9f5;
+        color: #24372c;
+        font:
+          16px/1.7 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 650px;
+        margin: 12vh auto;
+        padding: 25px;
+      }
+      h1 {
+        font-size: clamp(35px, 6vw, 58px);
+        font-weight: 500;
+        letter-spacing: -2px;
+        line-height: 1.1;
+      }
+      p {
+        color: #6b7865;
+      }
+      a,
+      button {
+        display: inline-block;
+        background: #24372c;
+        color: white;
+        border: 0;
+        border-radius: 7px;
+        padding: 14px 20px;
+        text-decoration: none;
+        font: inherit;
+        cursor: pointer;
+      }
+      button {
+        background: #e3ead8;
+        color: #24372c;
+        margin-top: 18px;
+      }
+      small {
+        display: block;
+        color: #7d8b72;
+        margin: 16px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <b>kitrelay ↗</b>
+      <h1>Your crew.<br />Your cloud workspace.</h1>
+      <p>
+        KitRelay now runs on Cloudflare, with shared workspaces and Google
+        Calendar integration. Open the app for current login availability.
+      </p>
+      <a href="https://kitrelay.arunchandel1780.workers.dev"
+        >Open KitRelay on Cloudflare ↗</a
+      >
+      <section id="legacy" hidden>
+        <p>
+          An earlier local workspace exists in this browser. Export it before
+          moving. Once signed in, create a cloud workspace and restore the
+          backup in Settings.
+        </p>
+        <button id="export">Export my earlier workspace</button
+        ><small
+          >The export happens on this device. It does not upload your
+          records.</small
+        >
+      </section>
+      <small
+        >Public source:
+        <a
+          style="background: none; color: inherit; padding: 0"
+          href="https://github.com/Arun5768/kitrelay"
+          >GitHub</a
+        ></small
+      >
+    </main>
+    <script>
+      const legacy = localStorage.getItem("kitrelay-v1");
+      if (legacy) {
+        document.getElementById("legacy").hidden = false;
+        document.getElementById("export").onclick = () => {
+          const url = URL.createObjectURL(
+            new Blob([legacy], { type: "application/json" }),
+          );
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "kitrelay-legacy-backup.json";
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+      }
+    </script>
+  </body>
+</html>

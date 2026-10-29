@@ -48,6 +48,14 @@ import {
   validateBackup,
 } from "./domain";
 import "./style.css";
+import {
+  useWorkspace,
+  Login,
+  CloudBar,
+  Team,
+  Invite,
+  CalendarConnection,
+} from "./cloud";
 const KEY = "kitrelay-v1";
 const icons = {
   Camera,
@@ -74,8 +82,10 @@ function download(name, data, type = "application/json") {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function App() {
-  const [s, setS] = useState(read),
-    [route, setRoute] = useState(location.hash.slice(1) || "/"),
+  const store = useWorkspace();
+  const s = store.state,
+    setS = store.setState;
+  const [route, setRoute] = useState(location.hash.slice(1) || "/"),
     [modal, setModal] = useState(null),
     [toast, setToast] = useState(""),
     [query, setQuery] = useState(""),
@@ -92,23 +102,6 @@ function App() {
     };
     addEventListener("hashchange", fn);
     return () => removeEventListener("hashchange", fn);
-  }, []);
-  useEffect(() => {
-    if (!s) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-    } catch {
-      setToast(
-        "Storage is full or unavailable. Export a backup before leaving.",
-      );
-    }
-  }, [s]);
-  useEffect(() => {
-    const fn = (e) => {
-      if (e.key === KEY) setS(read());
-    };
-    addEventListener("storage", fn);
-    return () => removeEventListener("storage", fn);
   }, []);
   useEffect(() => {
     if (!toast) return;
@@ -128,7 +121,8 @@ function App() {
   };
   const start = () => {
     if (s) nav("/desk");
-    else setModal("onboard");
+    else if (store.account?.user) setModal("onboard");
+    else nav("/login");
   };
   const addActivity = (j, text) => ({
     ...j,
@@ -140,7 +134,7 @@ function App() {
       jobs: s.jobs.map((j) => (j.id === id ? fn(j) : j)),
     }));
   const job = s?.jobs.find((j) => route === "/shoot/" + j.id);
-  const page = route.split("/")[1] || "home";
+  const page = (route.split("/")[1] || "home").split("?")[0];
   const upcoming =
     s?.jobs
       .filter((j) => j.status !== "returned")
@@ -268,7 +262,7 @@ function App() {
                   ? "First 9 items shown · full list below"
                   : "Move your cursor to inspect"}
                 <br />
-                Live procedural 3D · checklist is authoritative
+                Live packing preview
               </span>
             </div>
           </section>
@@ -538,7 +532,7 @@ function App() {
                         nav("/desk");
                         return;
                       }
-                      setS(sampleState());
+                      store.demo(sampleState());
                       nav("/desk");
                     }}
                   >
@@ -547,7 +541,7 @@ function App() {
                   </button>
                 </div>
                 <span className="hero-caption">
-                  Free local workspace · No account required
+                  Cloud workspaces · Google sign-in · Optional local demo
                 </span>
               </div>
               <div className="hero-art">
@@ -626,9 +620,9 @@ function App() {
                 Give it a place.
               </h2>
               <p>
-                Start with a sample production or your own empty workspace. Your
-                data stays in this browser. Export a backup whenever you need
-                it.
+                Start with a sample production or your own cloud workspace. Your
+                signed-in data is shared with your crew. The optional demo stays
+                in this browser. Export backups whenever you need them.
               </p>
               <button className="button lime" onClick={start}>
                 Set up your desk <ArrowUpRight size={17} />
@@ -646,29 +640,43 @@ function App() {
           {logo}
           <h1>Your workspace, your data.</h1>
           <p>
-            KitRelay currently stores workspace records in your browser’s local
-            storage. There is no shared account, cloud synchronization, or
-            automatic backup. Anyone using the same browser profile may access
-            these records. Clearing site data removes them.
+            Signed-in workspaces are stored in Cloudflare D1. Workspace owners
+            control who can access them. Google sign-in provides your account
+            ID, verified email, and display name. Sessions use secure, HTTP-only
+            cookies. The optional signed-out demo stays in this browser and is
+            not uploaded.
           </p>
           <p>
-            Export backups from Settings. Import replaces the current workspace
-            after confirmation. Calendar files and QR labels are generated on
-            your device. No Google, payment, or messaging account is connected
-            automatically. Hosting providers may process standard request logs.
+            Calendar access is optional. When connected, encrypted authorization
+            tokens are stored on the server. Sync publishes shoot names,
+            locations, crew names, and dates to a dedicated Google calendar.
+            Disconnecting removes the stored connection; existing events remain
+            in Google. You can revoke Google access in your Google account
+            settings. Activity audit records are retained for 90 days. Export
+            workspace data in Settings. Cloudflare and Google process data
+            needed to provide these services.
           </p>
           <a href="#/">Return home →</a>
         </main>
+      ) : store.loading ? (
+        <main className="privacy">
+          <h1>Opening your workspace…</h1>
+        </main>
+      ) : page === "login" ? (
+        <Login store={store} />
+      ) : page === "invite" ? (
+        <Invite store={store} token={route.split("/")[2]} />
       ) : !s ? (
         <main className="privacy">
           {logo}
           <h1>Make room for your next shoot.</h1>
-          <button className="button dark" onClick={() => setModal("onboard")}>
+          <CloudBar store={store} />
+          <button className="button dark" onClick={start}>
             Create workspace <ArrowRight size={16} />
           </button>
         </main>
       ) : (
-        <div className="app-shell">
+        <div className="app-shell" aria-busy={store.busy}>
           <aside className={"sidebar " + (menu ? "open" : "")}>
             {logo}
             <div className="workspace-label">
@@ -687,6 +695,7 @@ function App() {
                 ["shoots", "All shoots", CalendarDays],
                 ["equipment", "Equipment", Box],
                 ["integrations", "Connections", PlugZap],
+                ["team", "Team", Package],
                 ["settings", "Settings", Settings2],
               ].map(([p, label, Icon]) => (
                 <a
@@ -708,21 +717,30 @@ function App() {
             </nav>
             <div className="sidebar-bottom">
               <div className="local-indicator">
-                <span className="green-dot" /> Browser workspace
+                <span className="green-dot" />{" "}
+                {store.cloud ? "Cloud workspace" : "Local demo"}
               </div>
               <p>
                 {s.demo
                   ? "You’re exploring sample data."
-                  : "Saved on this device."}
+                  : store.cloud
+                    ? store.account.user.email
+                    : "Saved on this device."}
                 <br />
                 Export a backup to keep it safe.
               </p>
               <button className="text-button" onClick={exportBackup}>
                 Export workspace <Download size={14} />
               </button>
+              {!store.cloud && (
+                <a className="text-button" href="#/login">
+                  Sign in for cloud access ↗
+                </a>
+              )}
             </div>
           </aside>
           <div className="app-main">
+            <CloudBar store={store} />
             <header className="app-topbar">
               <button
                 className="mobile-menu"
@@ -1048,6 +1066,8 @@ function App() {
                     </div>
                   )}
                 </>
+              ) : page === "team" ? (
+                <Team store={store} />
               ) : page === "integrations" ? (
                 <>
                   <div className="page-heading">
@@ -1057,11 +1077,12 @@ function App() {
                       </span>
                       <h1>Keep the work connected.</h1>
                       <p>
-                        Working exports today. Account connections need provider
-                        setup.
+                        Connect Google Calendar and keep your production dates
+                        in sync.
                       </p>
                     </div>
                   </div>
+                  <CalendarConnection store={store} />
                   <div className="integration-grid">
                     {[
                       [
@@ -1109,18 +1130,6 @@ function App() {
                       </article>
                     ))}
                   </div>
-                  <div className="roadmap">
-                    <span className="eyebrow">
-                      PLANNED CONNECTIONS · NOT CONNECTED
-                    </span>
-                    <h3>Google Calendar sync · Drive receipts · Zoho Books</h3>
-                    <p>
-                      Automatic sync, shared team access, and billing are not
-                      enabled in this release. They require a secure backend and
-                      provider credentials. No account access is requested by
-                      this browser workspace.
-                    </p>
-                  </div>
                 </>
               ) : page === "settings" ? (
                 <>
@@ -1139,7 +1148,11 @@ function App() {
                         .trim();
                       if (name) {
                         setS({ ...s, workspace: name });
-                        notify("Workspace name saved.");
+                        notify(
+                          store.cloud
+                            ? "Saving workspace name…"
+                            : "Workspace name saved.",
+                        );
                       }
                     }}
                   >
@@ -1160,8 +1173,9 @@ function App() {
                   <div className="settings-card">
                     <h3>Keep a copy of your work</h3>
                     <p>
-                      Your workspace is stored in this browser only. Export
-                      regularly, especially before clearing browser data.
+                      {store.cloud
+                        ? "Your workspace is saved in the cloud. You can also keep a portable backup. Only owners can restore backups."
+                        : "This demo is saved in this browser. Sign in for cloud storage and team sharing."}
                     </p>
                     <div className="actions">
                       <button className="button subtle" onClick={exportBackup}>
@@ -1178,14 +1192,15 @@ function App() {
                   <div className="settings-card">
                     <h3>A fresh start</h3>
                     <p>
-                      Create an empty workspace. Export your current records
-                      first.
+                      {store.cloud
+                        ? "Create another workspace for a different crew. Your current workspace is retained."
+                        : "Create an empty cloud workspace for your own equipment."}
                     </p>
                     <button
                       className="text-button danger"
                       onClick={() => setModal("fresh")}
                     >
-                      Replace this workspace <RotateCcw size={15} />
+                      New cloud workspace <Plus size={15} />
                     </button>
                   </div>
                 </>
@@ -1205,314 +1220,324 @@ function App() {
       )}
       {modal && (
         <Modal onClose={() => setModal(null)}>
-          {modal === "onboard" || modal === "fresh" ? (
-            <>
-              <span className="eyebrow">YOUR NEXT GREAT SHOOT STARTS HERE</span>
-              <h2>
-                {modal === "fresh"
-                  ? "Start with your own gear."
-                  : "A home for your gear."}
-              </h2>
-              <p>
-                {modal === "fresh"
-                  ? "This replaces the current browser workspace. Export a backup first if you want to keep it."
-                  : "Choose a sample kit to try the full workflow, or start with an empty workspace."}
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const name = new FormData(e.currentTarget).get("name").trim();
-                  if (!name) return;
-                  setS(emptyState(name));
-                  setModal(null);
-                  nav("/equipment");
-                }}
-              >
-                <label>
-                  Studio or crew name
-                  <input
-                    name="name"
-                    placeholder="e.g. Frame & Field"
-                    required
-                    maxLength={60}
-                  />
-                </label>
-                <button className="button dark full">
-                  Create empty workspace <ArrowRight size={16} />
-                </button>
-              </form>
-              {modal === "onboard" && (
-                <button
-                  className="button subtle full"
-                  onClick={() => {
-                    setS(sampleState());
-                    setModal(null);
-                    nav("/desk");
+          <fieldset className="modal-fields" disabled={store.busy}>
+            {modal === "onboard" || modal === "fresh" ? (
+              <>
+                <span className="eyebrow">
+                  YOUR NEXT GREAT SHOOT STARTS HERE
+                </span>
+                <h2>
+                  {modal === "fresh"
+                    ? "Start with your own gear."
+                    : "A home for your gear."}
+                </h2>
+                <p>
+                  {store.account?.user
+                    ? "Create a shared cloud workspace for your crew. Existing workspaces are retained."
+                    : "Sign in with Google to create your cloud workspace."}
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const name = new FormData(e.currentTarget)
+                      .get("name")
+                      .trim();
+                    if (!name) return;
+                    if (await store.create(name)) {
+                      setModal(null);
+                      nav("/equipment");
+                    }
                   }}
                 >
-                  Explore with sample equipment <ArrowUpRight size={16} />
-                </button>
-              )}
-            </>
-          ) : modal === "newShoot" ? (
-            <>
-              <h2>Put a shoot on the board.</h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const f = Object.fromEntries(new FormData(e.currentTarget));
-                  if (f.end < f.start) {
-                    notify("End date must be on or after the start.");
-                    return;
-                  }
-                  const id = uid();
-                  setS({
-                    ...s,
-                    jobs: [
-                      ...s.jobs,
+                  <label>
+                    Studio or crew name
+                    <input
+                      name="name"
+                      placeholder="e.g. Frame & Field"
+                      required
+                      maxLength={60}
+                    />
+                  </label>
+                  <button className="button dark full">
+                    Create empty workspace <ArrowRight size={16} />
+                  </button>
+                </form>
+                {modal === "onboard" && !store.account?.user && (
+                  <button
+                    className="button subtle full"
+                    onClick={() => {
+                      store.demo(sampleState());
+                      setModal(null);
+                      nav("/desk");
+                    }}
+                  >
+                    Explore with sample equipment <ArrowUpRight size={16} />
+                  </button>
+                )}
+              </>
+            ) : modal === "newShoot" ? (
+              <>
+                <h2>Put a shoot on the board.</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = Object.fromEntries(new FormData(e.currentTarget));
+                    if (f.end < f.start) {
+                      notify("End date must be on or after the start.");
+                      return;
+                    }
+                    const id = uid();
+                    setS({
+                      ...s,
+                      jobs: [
+                        ...s.jobs,
+                        {
+                          ...f,
+                          id,
+                          status: "planning",
+                          items: [],
+                          packed: [],
+                          returns: {},
+                          activity: [
+                            {
+                              text: "Shoot created",
+                              at: new Date().toISOString(),
+                            },
+                          ],
+                        },
+                      ],
+                    });
+                    setModal(null);
+                    nav("/shoot/" + id);
+                  }}
+                >
+                  <label>
+                    Shoot name
+                    <input
+                      name="name"
+                      required
+                      maxLength={100}
+                      placeholder="e.g. The lakeside wedding"
+                    />
+                  </label>
+                  <label>
+                    Client
+                    <input
+                      name="client"
+                      maxLength={100}
+                      placeholder="Client or project"
+                    />
+                  </label>
+                  <div className="form-grid">
+                    <label>
+                      Start date
+                      <input
+                        name="start"
+                        type="date"
+                        defaultValue={localDate(1)}
+                        required
+                      />
+                    </label>
+                    <label>
+                      End date
+                      <input
+                        name="end"
+                        type="date"
+                        defaultValue={localDate(1)}
+                        required
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Location
+                    <input name="location" required maxLength={150} />
+                  </label>
+                  <label>
+                    Crew
+                    <input
+                      name="crew"
+                      required
+                      maxLength={100}
+                      placeholder="Names of the people on this shoot"
+                    />
+                  </label>
+                  <button className="button dark full">
+                    Create shoot <ArrowRight size={16} />
+                  </button>
+                </form>
+              </>
+            ) : modal === "newGear" ? (
+              <>
+                <h2>Meet your next kit member.</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = Object.fromEntries(new FormData(e.currentTarget));
+                    f.name = f.name.trim();
+                    f.code = f.code.trim();
+                    if (!f.name || !f.code) return;
+                    if (
+                      s.gear.some(
+                        (g) => g.code.toLowerCase() === f.code.toLowerCase(),
+                      )
+                    ) {
+                      notify("That label code already exists.");
+                      return;
+                    }
+                    setS({
+                      ...s,
+                      gear: [
+                        ...s.gear,
+                        { ...f, id: uid(), condition: "ready", requires: [] },
+                      ],
+                    });
+                    setModal(null);
+                    notify("Equipment added to the library.");
+                  }}
+                >
+                  <label>
+                    Equipment name
+                    <input
+                      name="name"
+                      required
+                      maxLength={100}
+                      placeholder="Sony FX3"
+                    />
+                  </label>
+                  <div className="form-grid">
+                    <label>
+                      Category
+                      <select name="category">
+                        {categories.map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Unique label code
+                      <input
+                        name="code"
+                        required
+                        maxLength={40}
+                        defaultValue={"KR-" + uid().slice(0, 6).toUpperCase()}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Notes
+                    <textarea
+                      name="notes"
+                      maxLength={500}
+                      placeholder="Serial number, care instructions…"
+                    />
+                  </label>
+                  <button className="button dark full">
+                    Add to library <Plus size={16} />
+                  </button>
+                </form>
+              </>
+            ) : modal.type === "assign" ? (
+              <Assign
+                state={s}
+                job={s.jobs.find((j) => j.id === modal.job.id)}
+                onSave={(ids) => {
+                  updateJob(modal.job.id, (j) =>
+                    addActivity(
                       {
-                        ...f,
-                        id,
-                        status: "planning",
-                        items: [],
-                        packed: [],
-                        returns: {},
-                        activity: [
-                          {
-                            text: "Shoot created",
-                            at: new Date().toISOString(),
-                          },
-                        ],
+                        ...j,
+                        items: ids,
+                        packed: j.packed.filter((id) => ids.includes(id)),
                       },
-                    ],
-                  });
-                  setModal(null);
-                  nav("/shoot/" + id);
-                }}
-              >
-                <label>
-                  Shoot name
-                  <input
-                    name="name"
-                    required
-                    maxLength={100}
-                    placeholder="e.g. The lakeside wedding"
-                  />
-                </label>
-                <label>
-                  Client
-                  <input
-                    name="client"
-                    maxLength={100}
-                    placeholder="Client or project"
-                  />
-                </label>
-                <div className="form-grid">
-                  <label>
-                    Start date
-                    <input
-                      name="start"
-                      type="date"
-                      defaultValue={localDate(1)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    End date
-                    <input
-                      name="end"
-                      type="date"
-                      defaultValue={localDate(1)}
-                      required
-                    />
-                  </label>
-                </div>
-                <label>
-                  Location
-                  <input name="location" required maxLength={150} />
-                </label>
-                <label>
-                  Crew
-                  <input
-                    name="crew"
-                    required
-                    maxLength={100}
-                    placeholder="Names of the people on this shoot"
-                  />
-                </label>
-                <button className="button dark full">
-                  Create shoot <ArrowRight size={16} />
-                </button>
-              </form>
-            </>
-          ) : modal === "newGear" ? (
-            <>
-              <h2>Meet your next kit member.</h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const f = Object.fromEntries(new FormData(e.currentTarget));
-                  f.name = f.name.trim();
-                  f.code = f.code.trim();
-                  if (!f.name || !f.code) return;
-                  if (
-                    s.gear.some(
-                      (g) => g.code.toLowerCase() === f.code.toLowerCase(),
-                    )
-                  ) {
-                    notify("That label code already exists.");
-                    return;
-                  }
-                  setS({
-                    ...s,
-                    gear: [
-                      ...s.gear,
-                      { ...f, id: uid(), condition: "ready", requires: [] },
-                    ],
-                  });
-                  setModal(null);
-                  notify("Equipment added to the library.");
-                }}
-              >
-                <label>
-                  Equipment name
-                  <input
-                    name="name"
-                    required
-                    maxLength={100}
-                    placeholder="Sony FX3"
-                  />
-                </label>
-                <div className="form-grid">
-                  <label>
-                    Category
-                    <select name="category">
-                      {categories.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Unique label code
-                    <input
-                      name="code"
-                      required
-                      maxLength={40}
-                      defaultValue={"KR-" + uid().slice(0, 6).toUpperCase()}
-                    />
-                  </label>
-                </div>
-                <label>
-                  Notes
-                  <textarea
-                    name="notes"
-                    maxLength={500}
-                    placeholder="Serial number, care instructions…"
-                  />
-                </label>
-                <button className="button dark full">
-                  Add to library <Plus size={16} />
-                </button>
-              </form>
-            </>
-          ) : modal.type === "assign" ? (
-            <Assign
-              state={s}
-              job={s.jobs.find((j) => j.id === modal.job.id)}
-              onSave={(ids) => {
-                updateJob(modal.job.id, (j) =>
-                  addActivity(
-                    {
-                      ...j,
-                      items: ids,
-                      packed: j.packed.filter((id) => ids.includes(id)),
-                    },
-                    "Kit equipment updated",
-                  ),
-                );
-                setModal(null);
-              }}
-            />
-          ) : modal.type === "issues" ? (
-            <>
-              <AlertTriangle className="warning" />
-              <h2>A few things before you go.</h2>
-              <p>Resolve these checks before this kit leaves.</p>
-              <ul className="issues">
-                {modal.issues.map((i, n) => (
-                  <li key={n}>{i}</li>
-                ))}
-              </ul>
-              <button
-                className="button dark full"
-                onClick={() => setModal(null)}
-              >
-                Back to the packing bench
-              </button>
-            </>
-          ) : modal.type === "scan" ? (
-            <Scanner
-              onScan={(code) =>
-                scan(
-                  s.jobs.find((j) => j.id === modal.job.id),
-                  code,
-                )
-              }
-            />
-          ) : modal.type === "gear" ? (
-            <GearDetail
-              gear={s.gear.find((g) => g.id === modal.gear.id)}
-              state={s}
-              onUpdate={(g) =>
-                setS({ ...s, gear: s.gear.map((x) => (x.id === g.id ? g : x)) })
-              }
-              notify={notify}
-            />
-          ) : modal.type === "damage" ? (
-            <>
-              <h2>Set aside for a little care.</h2>
-              <p>
-                Return {modal.gear.name} and mark it for maintenance. Checkout
-                will be blocked until it is marked serviceable again.
-              </p>
-              <button
-                className="button dark full"
-                onClick={() => {
-                  change((s) =>
-                    returnItem(s, modal.jobId, modal.gear.id, "maintenance"),
+                      "Kit equipment updated",
+                    ),
                   );
                   setModal(null);
                 }}
-              >
-                Return & flag maintenance
-              </button>
-            </>
-          ) : modal.type === "restore" ? (
-            <>
-              <h2>Restore this workspace?</h2>
-              <p>
-                This replaces your current data with “{modal.data.workspace}”:{" "}
-                {modal.data.gear.length} equipment items and{" "}
-                {modal.data.jobs.length} shoots.
-              </p>
-              {s && (
-                <button className="button subtle full" onClick={exportBackup}>
-                  Export current workspace first
+              />
+            ) : modal.type === "issues" ? (
+              <>
+                <AlertTriangle className="warning" />
+                <h2>A few things before you go.</h2>
+                <p>Resolve these checks before this kit leaves.</p>
+                <ul className="issues">
+                  {modal.issues.map((i, n) => (
+                    <li key={n}>{i}</li>
+                  ))}
+                </ul>
+                <button
+                  className="button dark full"
+                  onClick={() => setModal(null)}
+                >
+                  Back to the packing bench
                 </button>
-              )}
-              <button
-                className="button dark full"
-                onClick={() => {
-                  setS(modal.data);
-                  setModal(null);
-                  nav("/desk");
-                  notify("Backup restored.");
-                }}
-              >
-                Replace and restore
-              </button>
-            </>
-          ) : null}
+              </>
+            ) : modal.type === "scan" ? (
+              <Scanner
+                onScan={(code) =>
+                  scan(
+                    s.jobs.find((j) => j.id === modal.job.id),
+                    code,
+                  )
+                }
+              />
+            ) : modal.type === "gear" ? (
+              <GearDetail
+                gear={s.gear.find((g) => g.id === modal.gear.id)}
+                state={s}
+                onUpdate={(g) =>
+                  setS({
+                    ...s,
+                    gear: s.gear.map((x) => (x.id === g.id ? g : x)),
+                  })
+                }
+                notify={notify}
+              />
+            ) : modal.type === "damage" ? (
+              <>
+                <h2>Set aside for a little care.</h2>
+                <p>
+                  Return {modal.gear.name} and mark it for maintenance. Checkout
+                  will be blocked until it is marked serviceable again.
+                </p>
+                <button
+                  className="button dark full"
+                  onClick={() => {
+                    change((s) =>
+                      returnItem(s, modal.jobId, modal.gear.id, "maintenance"),
+                    );
+                    setModal(null);
+                  }}
+                >
+                  Return & flag maintenance
+                </button>
+              </>
+            ) : modal.type === "restore" ? (
+              <>
+                <h2>Restore this workspace?</h2>
+                <p>
+                  This replaces your current data with “{modal.data.workspace}”:{" "}
+                  {modal.data.gear.length} equipment items and{" "}
+                  {modal.data.jobs.length} shoots.
+                </p>
+                {s && (
+                  <button className="button subtle full" onClick={exportBackup}>
+                    Export current workspace first
+                  </button>
+                )}
+                <button
+                  className="button dark full"
+                  onClick={() => {
+                    store.restore(modal.data);
+                    setModal(null);
+                    nav("/desk");
+                    notify("Backup restored.");
+                  }}
+                >
+                  Replace and restore
+                </button>
+              </>
+            ) : null}
+          </fieldset>
         </Modal>
       )}
       {toast && (
@@ -1599,7 +1624,8 @@ function Assign({ state, job, onSave }) {
   );
 }
 function GearDetail({ gear: g, state, onUpdate, notify }) {
-  const [qr, setQr] = useState("");
+  const [qr, setQr] = useState(""),
+    [notes, setNotes] = useState(g.notes || "");
   useEffect(() => {
     QRCode.toDataURL(g.code, {
       width: 280,
@@ -1638,11 +1664,17 @@ function GearDetail({ gear: g, state, onUpdate, notify }) {
       <label>
         Care notes
         <textarea
-          value={g.notes || ""}
+          value={notes}
           maxLength={500}
-          onChange={(e) => onUpdate({ ...g, notes: e.target.value })}
+          onChange={(e) => setNotes(e.target.value)}
         />
       </label>
+      <button
+        className="button subtle"
+        onClick={() => onUpdate({ ...g, notes })}
+      >
+        Save care notes
+      </button>
       <h3>Required accessories</h3>
       <p className="muted">
         These must be included whenever this item is assigned.
@@ -1669,7 +1701,8 @@ function GearDetail({ gear: g, state, onUpdate, notify }) {
           ))}
       </div>
       <small className="muted">
-        Changes save automatically on this device.
+        Condition and accessory changes save immediately. Save care notes with
+        the button above.
       </small>
     </>
   );

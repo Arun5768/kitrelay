@@ -1,0 +1,12 @@
+PRAGMA foreign_keys = ON;
+CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, created_at INTEGER NOT NULL);
+CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL);
+CREATE INDEX sessions_expiry ON sessions(expires_at);
+CREATE TABLE oauth_states (state_hash TEXT PRIMARY KEY, browser_hash TEXT NOT NULL, verifier TEXT NOT NULL, nonce TEXT NOT NULL, purpose TEXT NOT NULL, user_id TEXT, return_path TEXT NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, data TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, updated_at INTEGER NOT NULL);
+CREATE TABLE members (workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, role TEXT NOT NULL CHECK(role IN ('owner','editor','viewer')), PRIMARY KEY(workspace_id,user_id));
+CREATE INDEX member_lookup ON members(user_id);
+CREATE TABLE invites (token_hash TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, email TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('editor','viewer')), expires_at INTEGER NOT NULL, created_by TEXT NOT NULL REFERENCES users(id));
+CREATE TABLE google_connections (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, refresh_token TEXT NOT NULL, calendar_id TEXT, last_synced_at INTEGER, lock_until INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE calendar_events (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, job_id TEXT NOT NULL, event_id TEXT NOT NULL, fingerprint TEXT NOT NULL, PRIMARY KEY(user_id,workspace_id,job_id));
+CREATE TABLE audit (id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_id TEXT NOT NULL, user_id TEXT NOT NULL, action TEXT NOT NULL, created_at INTEGER NOT NULL);

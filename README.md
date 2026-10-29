@@ -1,47 +1,63 @@
 # KitRelay
 
-[Live application](https://kitrelay.vercel.app) · [Public source](https://github.com/Arun5768/kitrelay)
+[Cloudflare app](https://kitrelay.arunchandel1780.workers.dev) · [Source](https://github.com/Arun5768/kitrelay)
 
-A visual equipment workspace for small production crews. Prepare a kit, catch conflicting reservations and missing accessories, check equipment out, and record its return.
+Equipment planning, packing, checkout, and returns for small production crews. React/Three.js frontend, Cloudflare Worker API, D1 persistence, Google identity, and Google Calendar integration.
 
-## Run
+## Deployment status
 
-Requires Node.js 22 or newer.
+The Cloudflare Worker and D1 database are deployed. **Google OAuth client credentials still need to be installed by the owner.** Until then, login is visibly disabled and live Google authentication/calendar consent cannot be tested. Calendar tests use mocked Google responses; they do not establish live provider authorization.
+
+## Features
+
+- Google OAuth with verified OpenID tokens, PKCE, nonce, browser-bound single-use state, and HTTP-only sessions.
+- Cloud workspaces with server-enforced owner/editor/viewer membership, email-bound invitation links, revocation, and workspace switching.
+- D1 persistence with optimistic concurrency. Stale writes are rejected; failed saves remain visible for export. Team changes refresh every 15 seconds when there are no unsaved edits.
+- Server-side checkout validation, damaged-item quarantine, and return reconciliation.
+- Optional Google Calendar consent using `calendar.app.created`. Creates a separate calendar; user-triggered sync creates/updates events with stable IDs. Sync is **one way, KitRelay to Google**, not background or two-way sync. Disconnect removes stored credentials and retains existing Google events. Provider access can also be revoked in Google account settings.
+- AES-GCM encrypted refresh tokens, same-origin mutation checks, request throttling, bounded payloads, and tenant checks on workspace APIs.
+- Three.js packing case, QR labels/scanning where supported, portable exports, owner-only cloud backup restoration, and a separate signed-out local demo.
+
+Cloud storage covers workspace records, not uploaded media. Invitations are links you share yourself; no email delivery service is configured. Billing is not included.
+
+## Activate Google
+
+1. Create/select a project in [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable **Google Calendar API**.
+3. Configure Google Auth Platform branding, audience, support email, and data access. Add your email as a test user while the app is in Testing.
+4. Create an OAuth client of type **Web application**.
+5. Add the exact redirect URI `https://kitrelay.arunchandel1780.workers.dev/api/auth/callback`.
+6. Download its client JSON to a private local location outside this repository.
+7. Run `node scripts/configure-google.mjs "C:/path/to/downloaded-client.json"`. This validates the redirect and passes credentials to Wrangler through stdin without displaying or committing them.
+8. Sign in, create a workspace, invite a second account, connect Calendar, and sync a shoot. Verify persistence in another browser and roles using both accounts.
+
+Cloudflare already has `TOKEN_ENCRYPTION_KEY` initialized. Preserve it across deployments; changing it invalidates encrypted refresh tokens. `APP_ORIGIN` is a public Worker variable. `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are Worker secrets, never Vite variables. Google Testing mode can limit users and refresh-token lifetime. Follow Google's verification/publishing requirements before opening access broadly.
+
+## Develop and deploy
+
+Node.js 24+ is used for SQLite integration tests.
 
 ```sh
 npm ci
-npm run dev
 npm test
 npm run build
+npm run db:local
+# Copy .dev.vars.example to .dev.vars and supply development OAuth credentials.
+# Add http://localhost:8787/api/auth/callback to the development OAuth client.
+npm run dev:cloud
 ```
 
-Deploy the Vite output directory `dist` to Vercel. No environment variables are needed for the current release.
+Use port 8787 for full-stack local testing. Vite-only development also proxies `/api` to the Worker; OAuth's callback and origin must match the browser origin.
 
-The initial production deployment was published with the Vercel CLI. Automatic GitHub deployments are not connected: Vercel requires the owner to add a GitHub login connection. Until then, deploy updates with `npx vercel --prod` from this directory.
+```sh
+npm run db:remote
+npm run deploy:cloudflare
+```
 
-## Working features
+Wrangler binds D1 and static assets. API routes always execute the Worker. Daily cleanup removes expired sessions, OAuth attempts, rate-limit entries, invitations, and audit records older than 90 days. Tests never seed production accounts.
 
-- Multi-page experience: landing, production desk, shoots, equipment, connections, settings, privacy.
-- Empty workspace onboarding or clearly marked fictional sample data.
-- Shoot creation with date validation; equipment creation with unique label codes.
-- Editable kits and accessory dependencies. Overlapping bookings, unreturned equipment, maintenance, missing dependencies, and unpacked items block checkout.
-- Individual returns and maintenance quarantine. An item remains unavailable until returned; damaged returns require service clearance.
-- Procedural Three.js case reflects packing state (first nine items shown); full checklist remains authoritative. Reduced-motion support and WebGL fallback.
-- Locally generated downloadable QR labels; manual/USB scanning, plus camera QR scanning where the native BarcodeDetector API is available.
-- Calendar (.ics), packing-list text, and JSON backup exports; validated backup restoration.
+The old Vercel address is retained as a handoff page with legacy browser-data export. Authentication stays on the canonical Cloudflare origin.
 
-## Honest product boundary
+## Validation and limits
 
-This release is a **single-browser MVP**, not a multi-tenant SaaS. Data is stored in localStorage, is available to anyone using that browser profile, and is lost if site data is cleared. Export backups regularly. No authentication, server database, automatic Google Calendar/Drive sync, shared teams, subscriptions, or payments are enabled. The Connections page distinguishes working exports from planned account integrations. Google Fonts is fetched for typography; a local system fallback is provided.
-
-Camera scanning depends on browser support, permission, and HTTPS/localhost. The printed code always works with manual entry. The 3D case represents kit completeness, not dimensional fit. It does not calculate whether equipment physically fits a real case.
-
-## Next validation step
-
-Pilot with a small production team across three real jobs. Measure packing omissions, reservation conflicts, return reconciliation time, and whether crew members use the checklist on location. Before enabling paid shared workspaces, add authentication, tenant-scoped persistence, server-enforced transactions, role permissions, backup recovery, and audited OAuth token storage. Do not use the local MVP as the only record for valuable equipment.
-
-## Tests
-
-Domain tests cover incomplete kits, accessory requirements, overlapping reservations, an entire checkout/return cycle, damaged equipment, overdue unreturned equipment, calendar dates/escaping, and backup references.
-
-Built with React, Vite, Three.js, Lucide, and QRCode. Product research and implementation developed with Codex; no customer adoption or revenue is claimed.
+Tests cover equipment workflows, tenant isolation, viewer restrictions, CSRF, concurrency, checkout bypass attempts, invitation email matching/replay, member removal, logout, OAuth state rejection, encrypted token account binding, and mocked Google sync/idempotency. Workspace limits are 500 equipment items, 500 shoots, and 1 MB of JSON. This is a bounded early release, not a claimed enterprise SLA.
